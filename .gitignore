@@ -1,0 +1,10 @@
+# Env file
+.env
+
+# Go build binaries (optional but recommended)
+/bin
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
