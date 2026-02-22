@@ -1,6 +1,7 @@
 package main
 
 import (
+	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -50,18 +51,15 @@ func main() {
 	api.Use(middleware.RequireAuth)
 	{
 		// A. ADMIN ONLY RESOURCE (Role 1)
-		// Fokus: User Management & Master Data
 		admin := api.Group("/admin")
 		admin.Use(middleware.RequireRoles(models.RoleAdmin))
 		{
-			// Personel Management (IAM: Admin mendaftarkan user)
 			admin.POST("/users", controllers.CreateUser)
 			admin.GET("/users", controllers.GetUsers)
 			admin.GET("/users/:id", controllers.GetUserByID)
 			admin.PUT("/users/:id", controllers.UpdateUser)
 			admin.DELETE("/users/:id", controllers.DeleteUser)
 
-			// Master Jabatan
 			admin.POST("/jabatan", controllers.CreateJabatan)
 			admin.GET("/jabatan", controllers.GetJabatan)
 			admin.PUT("/jabatan/:id", controllers.UpdateJabatan)
@@ -69,11 +67,9 @@ func main() {
 
 			admin.GET("/tingkat", controllers.GetTingkat)
 
-			// Master Wilayah
 			admin.PUT("/wilayah/:id", controllers.UpdateWilayah)
 			admin.GET("/wilayah", controllers.GetWilayah)
 
-			// Master Komoditas
 			admin.GET("/categories", controllers.GetCategories)
 			admin.GET("/commodities", controllers.GetCommodities)
 			admin.POST("/categories", controllers.CreateCommodity)
@@ -83,17 +79,13 @@ func main() {
 		}
 
 		// B. OPERATIONAL & INPUT (Role 1 & 2)
-		// Fokus: Transaksi data Lahan & Laporan
 		input := api.Group("/input")
 		input.Use(middleware.RequireRoles(models.RoleAdmin, models.RoleOperator))
 		{
 			input.POST("/lahan", controllers.CreatePotensiLahan)
-			// input.PUT("/lahan/:id", controllers.UpdatePotensiLahan)
-			// input.DELETE("/lahan/:id", controllers.DeletePotensiLahan)
 		}
 
 		// C. GENERAL VIEW & SHARED RESOURCE (Role 1, 2, 3)
-		// Fokus: Read-only data untuk Dashboard & Mobile View
 		view := api.Group("/view")
 		{
 			view.GET("/profile", controllers.GetProfile)
@@ -102,14 +94,15 @@ func main() {
 			view.GET("/wilayah", controllers.GetWilayah)
 			view.GET("/categories", controllers.GetCategories)
 			view.GET("/commodities", controllers.GetCommodities)
-
-			// Lahan Resource (Read-only for all authenticated)
 			view.GET("/lahan", controllers.GetPotensiLahan)
-			// view.GET("/lahan/filters", controllers.GetFilterOptions)
-			// view.GET("/lahan/summary", controllers.GetSummaryLahan)
-			// view.GET("/lahan/no-potential", controllers.GetNoPotentialLahan)
 		}
 	}
 
-	r.Run()
+	// 🔥 Production-ready untuk Render
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8080"
+	}
+
+	r.Run("0.0.0.0:" + port)
 }
