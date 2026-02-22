@@ -98,7 +98,6 @@ func main() {
 		}
 	}
 
-	// 🔥 Production-ready untuk Render
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
