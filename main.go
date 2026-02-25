@@ -27,30 +27,28 @@ func init() {
 func main() {
 	r := gin.Default()
 
+	r.GET("/uploads/:filename", controllers.GetImageFromDB)
+
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
-		ExposeHeaders:    []string{"Content-Length"},
+		ExposeHeaders:    []string{"Content-Length", "Content-Disposition"},
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
-
 	r.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{"message": "SIKAP PRESISI Backend v2.0 Online"})
 	})
 
-	// --- PUBLIC ACCESS ---
-	// Sesuai IAM: Tidak ada Signup publik. User didaftarkan oleh Admin.
 	r.POST("/login", controllers.Login)
 
-	// --- PROTECTED API AREA ---
 	api := r.Group("/api")
 	api.Use(middleware.RequireAuth)
 	{
-		// A. ADMIN ONLY RESOURCE (Role 1)
+		// A. ADMIN ONLY
 		admin := api.Group("/admin")
 		admin.Use(middleware.RequireRoles(models.RoleAdmin))
 		{
@@ -59,17 +57,13 @@ func main() {
 			admin.GET("/users/:id", controllers.GetUserByID)
 			admin.PUT("/users/:id", controllers.UpdateUser)
 			admin.DELETE("/users/:id", controllers.DeleteUser)
-
 			admin.POST("/jabatan", controllers.CreateJabatan)
 			admin.GET("/jabatan", controllers.GetJabatan)
 			admin.PUT("/jabatan/:id", controllers.UpdateJabatan)
 			admin.DELETE("/jabatan/:id", controllers.DeleteJabatan)
-
 			admin.GET("/tingkat", controllers.GetTingkat)
-
 			admin.PUT("/wilayah/:id", controllers.UpdateWilayah)
 			admin.GET("/wilayah", controllers.GetWilayah)
-
 			admin.GET("/categories", controllers.GetCategories)
 			admin.GET("/commodities", controllers.GetCommodities)
 			admin.POST("/categories", controllers.CreateCommodity)
@@ -78,23 +72,46 @@ func main() {
 			admin.POST("/commodity/delete-item", controllers.DeleteCommodityItem)
 		}
 
-		// B. OPERATIONAL & INPUT (Role 1 & 2)
-		input := api.Group("/input")
-		input.Use(middleware.RequireRoles(models.RoleAdmin, models.RoleOperator))
+		// B. POTENSI LAHAN (Sesuai Log: /api/potensi-lahan)
+		potensi := api.Group("/potensi-lahan")
 		{
-			input.POST("/lahan", controllers.CreatePotensiLahan)
+			potensi.GET("", controllers.GetPotensiLahan)
+			potensi.GET("/summary", controllers.GetSummaryLahan)
+			potensi.GET("/no-potential", controllers.GetNoPotentialLahan)
+			potensi.GET("/filters", controllers.GetFilterOptions)
+			potensi.POST("", middleware.RequireRoles(models.RoleAdmin, models.RoleOperator), controllers.CreatePotensiLahan)
 		}
 
-		// C. GENERAL VIEW & SHARED RESOURCE (Role 1, 2, 3)
+		// C. KELOLA LAHAN (Sesuai Log: /api/kelola-lahan)
+		kelola := api.Group("/kelola-lahan")
+		{
+			kelola.GET("/list", controllers.GetKelolaList)
+			kelola.GET("/summary", controllers.GetKelolaSummary)
+			kelola.GET("/filters", controllers.GetKelolaFilterOptions)
+		}
+
+		// D. RIWAYAT LAHAN (Sesuai Log: /api/riwayat-lahan)
+		riwayat := api.Group("/riwayat-lahan")
+		{
+			riwayat.GET("/list", controllers.GetRiwayatList)
+			riwayat.GET("/summary", controllers.GetRiwayatSummary)
+			riwayat.GET("/filters", controllers.GetRiwayatFilterOptions)
+		}
+
+		// E. REKAPITULASI (Sesuai Log: /api/rekapitulasi)
+		rekap := api.Group("/rekapitulasi")
+		{
+			rekap.GET("", controllers.GetRecapData)
+			rekap.GET("/export", controllers.ExportRecapExcel)
+		}
+
+		// F. SHARED VIEW
 		view := api.Group("/view")
 		{
 			view.GET("/profile", controllers.GetProfile)
 			view.GET("/jabatan", controllers.GetJabatan)
 			view.GET("/tingkat", controllers.GetTingkat)
 			view.GET("/wilayah", controllers.GetWilayah)
-			view.GET("/categories", controllers.GetCategories)
-			view.GET("/commodities", controllers.GetCommodities)
-			view.GET("/lahan", controllers.GetPotensiLahan)
 		}
 	}
 
